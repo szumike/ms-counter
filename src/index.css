@@ -1,0 +1,174 @@
+@import '@fontsource-variable/hanken-grotesk/wght.css';
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-alt: #f1efe8;
+  --ink: #171a17;
+  --muted: #8a8d83;
+  --faint: #a8ab9f;
+  --ghost: #c9ccc2;
+  --accent: #1b4d3e;
+  --accent-tint: #e4ede7;
+  --on-accent: #ffffff;
+  --chart-fill: rgba(27, 77, 62, 0.09);
+  --hairline: rgba(23, 26, 23, 0.08);
+  --track: rgba(23, 26, 23, 0.18);
+  --danger: #b3261e;
+
+  --shadow-card: 0 1px 2px rgba(23, 26, 23, 0.05), 0 12px 30px rgba(23, 26, 23, 0.04);
+  --shadow-flat: 0 1px 2px rgba(23, 26, 23, 0.05);
+  --shadow-accent: 0 8px 22px rgba(27, 77, 62, 0.3);
+  --shadow-toast: 0 12px 30px rgba(0, 0, 0, 0.25);
+
+  --font: 'Hanken Grotesk Variable', system-ui, -apple-system, sans-serif;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #111310;
+  --surface: #1d211c;
+  --surface-alt: #252a24;
+  --ink: #f2f1ea;
+  --muted: #8e948a;
+  --faint: #6e7367;
+  --ghost: #3a3f38;
+  --accent: #7fd4ae;
+  --accent-tint: rgba(127, 212, 174, 0.13);
+  --on-accent: #0c1a14;
+  --chart-fill: rgba(127, 212, 174, 0.13);
+  --hairline: rgba(242, 241, 234, 0.1);
+  --track: rgba(242, 241, 234, 0.18);
+  --danger: #f2b8b5;
+
+  /* Dark surfaces carry their own contrast; ambient shadows only muddy them. */
+  --shadow-card: none;
+  --shadow-flat: none;
+  --shadow-accent: none;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+html {
+  background: var(--bg);
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  max-width: 520px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+svg {
+  display: block;
+}
+
+/* Shared primitives -------------------------------------------------- */
+
+.display {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 26px;
+  box-shadow: var(--shadow-card);
+}
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 8px;
+  padding-bottom: 24px;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.section-label {
+  /* Some of these are <label> elements, which are inline by default —
+     without this their vertical padding would not take up any space. */
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 22px 6px 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

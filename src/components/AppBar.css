@@ -1,0 +1,41 @@
+.appbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 20px 0;
+  min-height: 34px;
+}
+
+.appbar__side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.appbar__side--end {
+  justify-content: flex-end;
+}
+
+.appbar__action {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--accent);
+  padding: 8px 0;
+  white-space: nowrap;
+}
+
+.appbar__action--strong {
+  font-weight: 600;
+}
+
+.appbar__action--quiet {
+  color: var(--muted);
+}
+
+.appbar__action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

@@ -1,0 +1,90 @@
+.list__head {
+  padding: 8px 22px 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.list__title {
+  font-size: 38px;
+  margin: 0;
+}
+
+.list__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list__settings {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.list__add {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 140ms var(--spring);
+}
+
+.list__add:active {
+  transform: scale(0.92);
+}
+
+.list__add-cross {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.list__add-cross::before,
+.list__add-cross::after {
+  content: '';
+  position: absolute;
+  border-radius: 2px;
+  background: var(--on-accent);
+}
+
+.list__add-cross::before {
+  top: 8px;
+  left: 0;
+  width: 18px;
+  height: 2.5px;
+}
+
+.list__add-cross::after {
+  left: 8px;
+  top: 0;
+  width: 2.5px;
+  height: 18px;
+}
+
+.list__scroll {
+  padding: 0 18px;
+}
+
+.list__tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list__footer {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--faint);
+  padding: 16px 8px 0;
+  margin: 0;
+}
