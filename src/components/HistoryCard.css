@@ -46,12 +46,32 @@
   color: var(--accent);
 }
 
+.history__plot {
+  position: relative;
+  margin-top: 12px;
+}
+
 .history__chart {
   /* Uniform scale, as drawn: the end dot stays a circle at any width. */
+  display: block;
   width: 100%;
   height: auto;
-  margin-top: 12px;
   overflow: visible;
+}
+
+/* One transparent tap target per day, laid over the chart. */
+.history__hits {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.history__hit {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .history__axis {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, dayKey, lastNDayKeys, msUntilNextMidnight } from './date'
-import { chartPaths, series } from './chart'
+import {
+  addDays,
+  dayKey,
+  dayLabel,
+  daysBetween,
+  lastNDayKeys,
+  longDayLabel,
+  msUntilNextMidnight,
+} from './date'
+import { chartPaths, series, valueOn } from './chart'
 import { emptyState, parseState, rollCounter, rollCounters } from './storage'
 import type { Counter } from './types'
 
@@ -33,6 +41,20 @@ describe('date', () => {
   it('handles a DST transition without dropping or repeating a day', () => {
     // Europe/Warsaw falls back on 2026-10-25.
     expect(lastNDayKeys(3, '2026-10-26')).toEqual(['2026-10-24', '2026-10-25', '2026-10-26'])
+  })
+
+  it('labels days as Today, Yesterday, or a short date', () => {
+    expect(dayLabel('2026-10-02', '2026-10-02')).toBe('Today')
+    expect(dayLabel('2026-10-01', '2026-10-02')).toBe('Yesterday')
+    expect(dayLabel('2026-08-30', '2026-10-02')).toBe('Sun 30 Aug')
+    expect(longDayLabel('2026-10-01')).toBe('Thu 1 Oct')
+  })
+
+  it('counts calendar days between keys, across a DST change', () => {
+    expect(daysBetween('2026-10-01', '2026-10-02')).toBe(1)
+    expect(daysBetween('2026-10-02', '2026-10-01')).toBe(-1)
+    expect(daysBetween('2026-10-24', '2026-10-26')).toBe(2)
+    expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2)
   })
 
   it('counts down to the next local midnight', () => {
@@ -110,6 +132,25 @@ describe('chart', () => {
   it('closes the area path back along the baseline', () => {
     const paths = chartPaths([1, 2], 100, 50, 5)
     expect(paths.area.endsWith('L5.0 45 Z')).toBe(true)
+  })
+
+  it('puts the dot on the selected point and draws a guide there', () => {
+    const paths = chartPaths([1, 2, 3], 100, 50, 5, 1)
+    expect(paths.dotX).toBe(50)
+    expect(paths.guide).toBe('M50.0 5 L50.0 45')
+  })
+
+  it('has no guide when the last point is selected, and clamps the index', () => {
+    expect(chartPaths([1, 2, 3], 100, 50, 5).guide).toBe('')
+    expect(chartPaths([1, 2, 3], 100, 50, 5, 9).guide).toBe('')
+    expect(chartPaths([1, 2, 3], 100, 50, 5, -4).dotX).toBe(5)
+  })
+
+  it('reads a single day through valueOn', () => {
+    const counter = makeCounter({ value: 7, history: { '2026-09-17': 5 } })
+    expect(valueOn(counter, '2026-09-18', '2026-09-18')).toBe(7)
+    expect(valueOn(counter, '2026-09-17', '2026-09-18')).toBe(5)
+    expect(valueOn(counter, '2026-09-16', '2026-09-18')).toBe(0)
   })
 
   it('reads history for past days and the live value for today', () => {

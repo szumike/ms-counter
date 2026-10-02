@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from './App'
 import { AppProvider } from './store/AppProvider'
 import { STORAGE_KEY } from './lib/storage'
-import { addDays, todayKey } from './lib/date'
+import { addDays, longDayLabel, todayKey } from './lib/date'
 import type { PersistedState } from './lib/types'
 
 function renderApp() {
@@ -194,6 +194,174 @@ describe('counter app', () => {
       expect(counter.value).toBe(0)
       expect(counter.lastActiveDay).toBe(todayKey())
       expect(counter.history[yesterday]).toBe(6)
+    })
+  })
+
+  describe('editing previous days', () => {
+    const yesterday = () => addDays(todayKey(), -1)
+
+    async function openCounter(user: ReturnType<typeof userEvent.setup>, goal?: string) {
+      await user.click(screen.getByRole('link', { name: /create your first counter/i }))
+      await user.type(screen.getByLabelText('Name'), 'Water')
+      if (goal) await user.click(screen.getByRole('radio', { name: goal }))
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+    }
+
+    it('edits yesterday without touching today', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      expect(screen.getByText('Yesterday')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Reset to zero' })).toBeDisabled()
+
+      await user.click(screen.getByRole('button', { name: 'Increase by one' }))
+      await user.click(screen.getByRole('button', { name: 'Increase by one' }))
+
+      await expectStored((s) => {
+        expect(s.counters[0].value).toBe(0)
+        expect(s.counters[0].history[yesterday()]).toBe(2)
+      })
+    })
+
+    it('returns to today with Back to today', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      await user.click(screen.getByRole('button', { name: 'Back to today' }))
+
+      expect(screen.getByText('Today')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Back to today' })).not.toBeInTheDocument()
+    })
+
+    it('limits navigation to today and 29 days back', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled()
+      const prev = screen.getByRole('button', { name: 'Previous day' })
+      for (let i = 0; i < 29; i++) await user.click(prev)
+
+      expect(prev).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Next day' })).toBeEnabled()
+    })
+
+    it('resets a past day with a dated toast and undoes it', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      const day = addDays(todayKey(), -2)
+      await user.click(screen.getByRole('button', { name: 'Increase by one' }))
+      await user.click(screen.getByRole('button', { name: 'Increase by one' }))
+      await user.click(screen.getByRole('button', { name: 'Increase by one' }))
+
+      await user.click(screen.getByRole('button', { name: 'Reset to zero' }))
+      expect(screen.getByText(`Reset ${longDayLabel(day)} to 0`)).toBeInTheDocument()
+      await expectStored((s) => expect(s.counters[0].history[day]).toBe(0))
+
+      await user.click(screen.getByRole('button', { name: 'Undo' }))
+      await expectStored((s) => expect(s.counters[0].history[day]).toBe(3))
+    })
+
+    it('selects a day by tapping the chart', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      await user.click(screen.getByRole('button', { name: `Show ${longDayLabel(addDays(todayKey(), -3))}` }))
+
+      expect(screen.getByRole('button', { name: 'Back to today' })).toBeInTheDocument()
+      expect(screen.getAllByText(longDayLabel(addDays(todayKey(), -3))).length).toBeGreaterThan(0)
+    })
+
+    it('widens the range when the selected day is older than it', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      const prev = screen.getByRole('button', { name: 'Previous day' })
+      for (let i = 0; i < 10; i++) await user.click(prev)
+
+      expect(screen.getByRole('button', { name: '14 days' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('clamps the selection when a shorter range is picked', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      const prev = screen.getByRole('button', { name: 'Previous day' })
+      for (let i = 0; i < 10; i++) await user.click(prev)
+      await user.click(screen.getByRole('button', { name: '7 days' }))
+
+      expect(screen.getByText(longDayLabel(addDays(todayKey(), -6)))).toBeInTheDocument()
+    })
+
+    it('keeps the pinned day selected when midnight pushes it out of the range', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date() })
+      try {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        renderApp()
+        await openCounter(user)
+
+        // Pin 6 days back (range 7), then let a day pass.
+        await user.click(screen.getByRole('button', { name: `Show ${longDayLabel(addDays(todayKey(), -6))}` }))
+        expect(screen.getByRole('button', { name: '7 days' })).toHaveAttribute('aria-pressed', 'true')
+
+        const pinned = addDays(todayKey(), -6)
+        vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000)
+        act(() => {
+          document.dispatchEvent(new Event('visibilitychange'))
+        })
+
+        expect(screen.getByRole('button', { name: '14 days' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', { name: `Show ${longDayLabel(pinned)}` })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('moves focus to Previous day after Back to today', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      await user.click(screen.getByRole('button', { name: 'Back to today' }))
+
+      expect(screen.getByRole('button', { name: 'Previous day' })).toHaveFocus()
+    })
+
+    it('shows the goal on a past day only for a counter that has one', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user, '8')
+
+      expect(screen.getByText('of 8 today')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      expect(screen.getByText('of 8')).toBeInTheDocument()
+    })
+
+    it('hides the goal line on a past day for a goalless counter', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await openCounter(user)
+
+      // The chart axis also says "today", so target the goal line by its class.
+      const goalLine = () => document.querySelector('.detail__goal')
+      expect(goalLine()).toHaveTextContent(/^today$/)
+      await user.click(screen.getByRole('button', { name: 'Previous day' }))
+      expect(goalLine()).toBeNull()
     })
   })
 

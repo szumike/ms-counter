@@ -1,5 +1,5 @@
 import type { Counter } from './types'
-import { lastNDayKeys } from './date'
+import { lastNDayKeys, type DayKey } from './date'
 
 export type ChartPaths = {
   line: string
@@ -9,6 +9,7 @@ export type ChartPaths = {
   avg: number
   first: string
   last: string
+  guide: string
 }
 
 /**
@@ -16,8 +17,9 @@ export type ChartPaths = {
  * prototype: the scale floor is 1 so an all-zero series still draws a flat
  * line along the bottom rather than dividing by zero.
  */
-export function chartPaths(values: number[], w: number, h: number, pad: number): ChartPaths {
+export function chartPaths(values: number[], w: number, h: number, pad: number, selected?: number): ChartPaths {
   const n = values.length
+  const sel = Math.min(n - 1, Math.max(0, selected ?? n - 1))
   const max = Math.max(1, ...values)
   const px = (i: number) => pad + (i * (w - pad * 2)) / Math.max(1, n - 1)
   const py = (v: number) => h - pad - (v / max) * (h - pad * 2)
@@ -34,11 +36,12 @@ export function chartPaths(values: number[], w: number, h: number, pad: number):
   return {
     line,
     area: `${line} L${px(n - 1).toFixed(1)} ${floor} L${px(0).toFixed(1)} ${floor} Z`,
-    dotX: Number(px(n - 1).toFixed(1)),
-    dotY: Number(py(values[n - 1]).toFixed(1)),
+    dotX: Number(px(sel).toFixed(1)),
+    dotY: Number(py(values[sel]).toFixed(1)),
     avg: Number(avg.toFixed(1)),
     first: `${n} days ago`,
     last: 'today',
+    guide: sel === n - 1 ? '' : `M${px(sel).toFixed(1)} ${pad} L${px(sel).toFixed(1)} ${h - pad}`,
   }
 }
 
@@ -47,6 +50,10 @@ export function chartPaths(values: number[], w: number, h: number, pad: number):
  * then today's live value as the final point. Days with no record read as 0.
  */
 export function series(counter: Counter, days: number, today: string): number[] {
-  const keys = lastNDayKeys(days, today)
-  return keys.map((key) => (key === today ? counter.value : (counter.history[key] ?? 0)))
+  return lastNDayKeys(days, today).map((key) => valueOn(counter, key, today))
+}
+
+/** A day's total: the live value for today, recorded history (or 0) otherwise. */
+export function valueOn(counter: Counter, day: DayKey, today: DayKey): number {
+  return day === today ? counter.value : (counter.history[day] ?? 0)
 }

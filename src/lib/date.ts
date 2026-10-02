@@ -34,6 +34,31 @@ export function lastNDayKeys(n: number, end: DayKey = todayKey()): DayKey[] {
   return keys
 }
 
+/** How many days back from today the user may edit (today plus 29 past days = 30). */
+export const EDITABLE_PAST_DAYS = 29
+
+/** Calendar days from `from` to `to`. Uses UTC midnights so DST can't skew it. */
+export function daysBetween(from: DayKey, to: DayKey): number {
+  const [fy, fm, fd] = from.split('-').map(Number)
+  const [ty, tm, td] = to.split('-').map(Number)
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000)
+}
+
+/** Short date such as `Thu 1 Oct`. */
+export function longDayLabel(day: DayKey): string {
+  return parseDayKey(day).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+export function dayLabel(day: DayKey, today: DayKey): string {
+  if (day === today) return 'Today'
+  if (day === addDays(today, -1)) return 'Yesterday'
+  return longDayLabel(day)
+}
+
 export function isDayKey(value: unknown): value is DayKey {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }

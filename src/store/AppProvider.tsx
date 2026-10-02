@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { load, save } from '../lib/storage'
+import { valueOn } from '../lib/chart'
 import { msUntilNextMidnight, todayKey } from '../lib/date'
 import type { ThemeChoice } from '../lib/types'
 import {
@@ -118,19 +119,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dismissUndo()
         dispatch({ type: 'remove', id })
       },
-      bump: (id, delta) => dispatch({ type: 'bump', id, delta, today: todayKey() }),
-      reset: (id) => {
+      bump: (id, delta, day) => dispatch({ type: 'bump', id, delta, today: todayKey(), day }),
+      reset: (id, day) => {
         const counter = counters.find((c) => c.id === id)
         if (!counter) return
-        dispatch({ type: 'setValue', id, value: 0, today: todayKey() })
+        const target = day ?? today
+        dispatch({ type: 'setValue', id, value: 0, today: todayKey(), day: target })
         clearTimeout(undoTimer.current)
-        setPendingUndo({ id, name: counter.name, value: counter.value })
+        setPendingUndo({ id, name: counter.name, value: valueOn(counter, target, today), day: target })
         undoTimer.current = setTimeout(() => setPendingUndo(null), UNDO_WINDOW_MS)
       },
       pendingUndo,
       undoReset: () => {
         if (!pendingUndo) return
-        dispatch({ type: 'setValue', id: pendingUndo.id, value: pendingUndo.value, today: todayKey() })
+        dispatch({ type: 'setValue', id: pendingUndo.id, value: pendingUndo.value, today: todayKey(), day: pendingUndo.day })
         dismissUndo()
       },
       dismissUndo,

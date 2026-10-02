@@ -29,7 +29,7 @@
 .detail__value {
   font-size: 132px;
   line-height: 1;
-  margin-top: 26px;
+  margin-top: 10px;
   font-variant-numeric: tabular-nums;
   transition: transform 180ms var(--spring);
 }

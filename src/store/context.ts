@@ -12,6 +12,7 @@ export type PendingUndo = {
   id: string
   name: string
   value: number
+  day: DayKey
 }
 
 export type CountersApi = {
@@ -22,8 +23,8 @@ export type CountersApi = {
   addCounter: (input: NewCounterInput) => string
   updateCounter: (id: string, patch: NewCounterInput) => void
   removeCounter: (id: string) => void
-  bump: (id: string, delta: number) => void
-  reset: (id: string) => void
+  bump: (id: string, delta: number, day?: DayKey) => void
+  reset: (id: string, day?: DayKey) => void
   pendingUndo: PendingUndo | null
   undoReset: () => void
   dismissUndo: () => void

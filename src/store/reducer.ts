@@ -1,5 +1,6 @@
 import type { Counter, PersistedState, ThemeChoice } from '../lib/types'
-import type { DayKey } from '../lib/date'
+import { addDays, EDITABLE_PAST_DAYS, type DayKey } from '../lib/date'
+import { valueOn } from '../lib/chart'
 import { rollCounter, rollCounters } from '../lib/storage'
 import type { NewCounterInput } from './context'
 
@@ -8,8 +9,8 @@ export type Action =
   | { type: 'add'; id: string; input: NewCounterInput; today: DayKey }
   | { type: 'update'; id: string; input: NewCounterInput }
   | { type: 'remove'; id: string }
-  | { type: 'bump'; id: string; delta: number; today: DayKey }
-  | { type: 'setValue'; id: string; value: number; today: DayKey }
+  | { type: 'bump'; id: string; delta: number; today: DayKey; day?: DayKey }
+  | { type: 'setValue'; id: string; value: number; today: DayKey; day?: DayKey }
   | { type: 'theme'; theme: ThemeChoice }
 
 /**
@@ -26,6 +27,22 @@ function mapCounter(
     ...state,
     counters: state.counters.map((c) => (c.id === id ? fn(rollCounter(c, today)) : rollCounter(c, today))),
   }
+}
+
+/** Writes `next(current)` to the selected day; a missing day means today. */
+function writeDay(
+  state: PersistedState,
+  id: string,
+  today: DayKey,
+  day: DayKey | undefined,
+  next: (current: number) => number,
+): PersistedState {
+  const target = day ?? today
+  if (target > today || target < addDays(today, -EDITABLE_PAST_DAYS)) return state
+  return mapCounter(state, id, today, (c) => {
+    const value = Math.max(0, next(valueOn(c, target, today)))
+    return target === today ? { ...c, value } : { ...c, history: { ...c.history, [target]: value } }
+  })
 }
 
 export function reducer(state: PersistedState, action: Action): PersistedState {
@@ -69,16 +86,10 @@ export function reducer(state: PersistedState, action: Action): PersistedState {
       }
 
     case 'bump':
-      return mapCounter(state, action.id, action.today, (c) => ({
-        ...c,
-        value: Math.max(0, c.value + action.delta),
-      }))
+      return writeDay(state, action.id, action.today, action.day, (v) => v + action.delta)
 
     case 'setValue':
-      return mapCounter(state, action.id, action.today, (c) => ({
-        ...c,
-        value: Math.max(0, action.value),
-      }))
+      return writeDay(state, action.id, action.today, action.day, () => action.value)
 
     case 'theme':
       return { ...state, settings: { ...state.settings, theme: action.theme } }
